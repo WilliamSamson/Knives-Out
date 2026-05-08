@@ -76,12 +76,12 @@ Instructions:
 3.  Describe the character's relationships within the group of friends, highlighting any tensions, rivalries, alliances, or secret connections that could serve as motives. Make sure these relationships acknowledge the context of a group of 6 friends.
 4.  Provide a subtle hint about a hidden motive or secret that the character possesses, without explicitly stating they are the killer.
 
-{{
-  "#if existingCharacterSummaries" +
-  "Consider the following existing characters to ensure uniqueness and interconnectedness, and to weave specific relationships if possible:\n" +
-  "{{#each existingCharacterSummaries}}- {{{this}}}\n{{/each}}" +
-  "{{/if}}"
-}}
+{{#if existingCharacterSummaries}}
+Consider the following existing characters to ensure uniqueness and interconnectedness, and to weave specific relationships if possible:
+{{#each existingCharacterSummaries}}
+- {{{this}}}
+{{/each}}
+{{/if}}
 
 Ensure the output is formatted as a JSON object matching the output schema.
 `
