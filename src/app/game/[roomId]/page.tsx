@@ -7,10 +7,10 @@ import { generatePlayerCharacter } from '@/ai/flows/generate-player-character';
 import { generateMurderMystery } from '@/ai/flows/generate-murder-mystery';
 import { revealMurderResolution } from '@/ai/flows/reveal-murder-resolution';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Users, Info, MapPin, Skull, Fingerprint, ShieldAlert, Vote, Gavel } from 'lucide-react';
+import { Users, Info, MapPin, Skull, Fingerprint, ShieldAlert, Vote, Gavel, Search } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -28,13 +28,20 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
     cluesDiscovered: [],
   });
   
-  const [localPlayerId] = useState(() => Math.random().toString(36).substring(7));
+  const [localPlayerId, setLocalPlayerId] = useState<string>('');
   const [loadingMsg, setLoadingMsg] = useState('');
   const [interrogationText, setInterrogationText] = useState('');
   const [chatLogs, setChatLogs] = useState<{from: string, msg: string}[]>([]);
 
+  // Defer ID generation to handle hydration correctly
+  useEffect(() => {
+    setLocalPlayerId(Math.random().toString(36).substring(7));
+  }, []);
+
   // Simulation of multiplayer by adding a few dummy players if it's the host
   useEffect(() => {
+    if (!localPlayerId) return;
+
     const me: Player = {
       id: localPlayerId,
       name: playerName,
@@ -55,7 +62,7 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
     } else if (room.players.length === 0) {
       setRoom(prev => ({ ...prev, players: [me] }));
     }
-  }, [roomId, playerName, isHostParam]);
+  }, [roomId, playerName, isHostParam, localPlayerId]);
 
   const startGame = async () => {
     setRoom(prev => ({ ...prev, status: 'generating' }));
