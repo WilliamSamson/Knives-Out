@@ -14,6 +14,7 @@ import { Users, Info, MapPin, Skull, Fingerprint, ShieldAlert, Vote, Gavel, Sear
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
 
 export default function GameRoomPage({ params }: { params: Promise<{ roomId: string }> }) {
   const unwrappedParams = use(params);
@@ -21,6 +22,7 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
   const searchParams = useSearchParams();
   const playerName = searchParams.get('name') || 'Anonymous';
   const isHostParam = searchParams.get('host') === 'true';
+  const { toast } = useToast();
 
   const [room, setRoom] = useState<GameRoom>({
     id: roomId,
@@ -35,6 +37,7 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
   const [selectedSuspect, setSelectedSuspect] = useState<string>('');
   const [chatLogs, setChatLogs] = useState<{from: string, msg: string, isSuspect?: boolean}[]>([]);
   const [isInterrogating, setIsInterrogating] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
 
   useEffect(() => {
     setLocalPlayerId(Math.random().toString(36).substring(7));
@@ -65,16 +68,16 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
   }, [roomId, playerName, isHostParam, localPlayerId]);
 
   const startGame = async () => {
+    if (isStarting) return;
+    setIsStarting(true);
     setRoom(prev => ({ ...prev, status: 'generating' }));
     setLoadingMsg('Generating the perfect crime...');
 
     try {
-      // Single AI call to generate the entire mystery and all character roles
       const mystery = await generateMurderMystery({ setting: 'A secluded winter manor in the mountains.' });
       
       setLoadingMsg('Assigning roles and secrets...');
 
-      // Map the 6 generated suspects to the 6 players in the room
       const updatedPlayers = room.players.map((p, i) => {
         const suspect = mystery.suspects[i] || mystery.suspects[0];
         return {
@@ -99,9 +102,18 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
       if (mystery.suspects.length > 0) {
         setSelectedSuspect(mystery.suspects[0].name);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      toast({
+        variant: "destructive",
+        title: "Mystery Generation Failed",
+        description: e.message.includes('429') 
+          ? "The AI is currently exhausted. Please wait a minute and try again." 
+          : "Something went wrong while setting the scene.",
+      });
       setRoom(prev => ({ ...prev, status: 'lobby' }));
+    } finally {
+      setIsStarting(false);
     }
   };
 
@@ -126,8 +138,15 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
       });
 
       setChatLogs(prev => [...prev, { from: selectedSuspect, msg: response.response, isSuspect: true }]);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      toast({
+        variant: "destructive",
+        title: "Interrogation Interrupted",
+        description: e.message.includes('429') 
+          ? "The suspect is overwhelmed. Give them a moment." 
+          : "The connection to the suspect was lost.",
+      });
       setChatLogs(prev => [...prev, { from: 'System', msg: 'The suspect remains silent...' }]);
     } finally {
       setIsInterrogating(false);
@@ -146,7 +165,8 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
   };
 
   const revealTruth = async () => {
-    if (!room.mystery) return;
+    if (!room.mystery || isStarting) return;
+    setIsStarting(true);
     setRoom(prev => ({ ...prev, status: 'generating' }));
     setLoadingMsg('Connecting the clues...');
 
@@ -162,9 +182,16 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
       });
 
       setRoom(prev => ({ ...prev, status: 'revelation', revelation: resolution.recapNarrative }));
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      toast({
+        variant: "destructive",
+        title: "Revelation Failed",
+        description: "The truth is still shrouded in mystery. Try revealing again.",
+      });
       setRoom(prev => ({ ...prev, status: 'investigation' }));
+    } finally {
+      setIsStarting(false);
     }
   };
 
@@ -221,7 +248,7 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
             {me?.isHost && (
               <Button 
                 onClick={startGame}
-                disabled={room.players.length < 1}
+                disabled={room.players.length < 1 || isStarting}
                 className="w-full h-16 text-xl font-headline tracking-widest bg-accent hover:bg-accent/80 text-white shadow-lg accent-glow"
               >
                 BEGIN THE INVESTIGATION
@@ -270,7 +297,7 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
                </Button>
              )}
              {me?.isHost && room.status === 'accusation' && (
-               <Button onClick={revealTruth} size="sm" className="bg-accent font-headline">
+               <Button onClick={revealTruth} size="sm" className="bg-accent font-headline" disabled={isStarting}>
                  REVEAL THE TRUTH
                </Button>
              )}
