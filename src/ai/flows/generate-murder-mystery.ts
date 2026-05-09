@@ -32,7 +32,7 @@ const GenerateMurderMysteryOutputSchema = z.object({
     hiddenMotive: z.string().describe("The suspect's hidden motive to harm the victim."),
     relationshipToVictim: z.string().describe("The nature of the suspect's relationship to the victim."),
     isKiller: z.boolean().describe("True if this suspect is the killer, false otherwise. Exactly one suspect must be the killer."),
-  })).min(5).max(5).describe("An array of 5 suspects, one of whom is the killer."),
+  })).min(6).max(6).describe("An array of 6 suspects, one of whom is the killer."),
   clues: z.array(z.string().describe("A subtle piece of evidence or information related to the murder, that players can discover and piece together to solve the mystery.")).min(3).max(5).describe("An array of subtle clues scattered around the scene, pointing towards the killer but not overtly."),
   killerRevelation: z.string().describe("A detailed narrative revealing how the killer committed the murder, their true motive, and how they evaded initial suspicion. This should be a complete explanation, only to be revealed at the end of the game."),
 });
@@ -47,22 +47,22 @@ const prompt = ai.definePrompt({
   input: {schema: GenerateMurderMysteryInputSchema},
   output: {schema: GenerateMurderMysteryOutputSchema},
   prompt: `You are a master storyteller and game designer for a murder mystery game called 'Knives Out'.
-Your task is to craft a unique, compelling, and challenging murder scenario involving 6 friends, where one is the victim and one of the remaining five is the killer.
+Your task is to craft a unique, compelling, and challenging murder scenario involving 7 friends, where one is the victim and one of the remaining six is the killer.
 
 Generate the following elements for the mystery:
 1.  **Victim Details**: Create a victim with a name, description, a specific cause of death, time of death, location of death, and a description of the fatal wound.
-2.  **Suspects**: Create 5 distinct suspects. For each suspect, provide:
+2.  **Suspects**: Create 6 distinct suspects (roles for the 6 players). For each suspect, provide:
     *   A unique name.
     *   A brief description of their personality and relationship dynamics with the victim and other friends.
     *   A brief backstory summary that hints at potential conflict or connection to the victim.
-    *   A plausible alibi for the time of death, which might have small inconsistencies or weaknesses.
+    *   A plausible alibi for the time of death.
     *   A hidden motive to harm the victim.
     *   Their relationship to the victim.
     *   Crucially, exactly one of these suspects **must** be the true killer. For the killer, their alibi should be cleverly constructed to initially deflect suspicion, and their motive should be the primary one leading to the murder.
-3.  **Subtle Clues**: Generate 3 to 5 subtle clues that players can discover. These clues should logically point towards the true killer without being obvious, and might contradict some alibis or reveal hidden motives.
-4.  **Killer Revelation**: A complete narrative explanation detailing how the killer committed the murder, their true motive, the methods they used, and how they tried to cover their tracks or initially evaded suspicion. This narrative is for the game master to reveal after the players have made their accusation.
+3.  **Subtle Clues**: Generate 3 to 5 subtle clues that players can discover. These clues should logically point towards the true killer without being obvious.
+4.  **Killer Revelation**: A complete narrative explanation detailing how the killer committed the murder.
 
-The overall tone should be dark, mysterious, and intriguing, consistent with a crime thriller.
+The overall tone should be dark, mysterious, and intriguing.
 Ensure the alibis, motives, and clues are interconnected and create a challenging puzzle for the players.
 
 {{#if setting}}

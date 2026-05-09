@@ -3,7 +3,6 @@
 import { useState, useEffect, use } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { GameRoom, Player, GameStatus } from '@/app/lib/game-state';
-import { generatePlayerCharacter } from '@/ai/flows/generate-player-character';
 import { generateMurderMystery } from '@/ai/flows/generate-murder-mystery';
 import { revealMurderResolution } from '@/ai/flows/reveal-murder-resolution';
 import { interrogateSuspect } from '@/ai/flows/interrogate-suspect';
@@ -70,22 +69,24 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
     setLoadingMsg('Generating the perfect crime...');
 
     try {
+      // Single AI call to generate the entire mystery and all character roles
       const mystery = await generateMurderMystery({ setting: 'A secluded winter manor in the mountains.' });
-      setLoadingMsg('Forging character backstories and motives...');
-
-      const playerCharPromises = room.players.map((p, i) => {
-        return generatePlayerCharacter({
-          gameSetting: 'A secluded winter manor in the mountains. One of your friends is dead.',
-          existingCharacterSummaries: room.players.slice(0, i).map(cp => cp.character?.characterName || '')
-        });
-      });
-
-      const characters = await Promise.all(playerCharPromises);
       
-      const updatedPlayers = room.players.map((p, i) => ({
-        ...p,
-        character: characters[i]
-      }));
+      setLoadingMsg('Assigning roles and secrets...');
+
+      // Map the 6 generated suspects to the 6 players in the room
+      const updatedPlayers = room.players.map((p, i) => {
+        const suspect = mystery.suspects[i] || mystery.suspects[0];
+        return {
+          ...p,
+          character: {
+            characterName: suspect.name,
+            backstory: `${suspect.backstorySummary} Your alibi: ${suspect.alibi}`,
+            relationships: suspect.relationshipToVictim,
+            hiddenMotiveHint: suspect.isKiller ? `YOU ARE THE KILLER. ${suspect.hiddenMotive}` : suspect.hiddenMotive
+          }
+        };
+      });
 
       setRoom(prev => ({
         ...prev,
@@ -149,17 +150,22 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
     setRoom(prev => ({ ...prev, status: 'generating' }));
     setLoadingMsg('Connecting the clues...');
 
-    const resolution = await revealMurderResolution({
-      gameScenario: {
-        victim: room.mystery.victim,
-        trueKiller: room.mystery.suspects.find(s => s.isKiller)!,
-        allCharacterAlibis: room.mystery.suspects.map(s => ({ characterName: s.name, alibi: s.alibi })),
-        clues: room.mystery.clues.map(c => ({ description: c, relevance: 'Hidden detail' })),
-        eventsChronology: ['Dinner was served at 8:00', 'Power went out at 10:15', 'Victim was found at 11:00']
-      }
-    });
+    try {
+      const resolution = await revealMurderResolution({
+        gameScenario: {
+          victim: room.mystery.victim,
+          trueKiller: room.mystery.suspects.find(s => s.isKiller)!,
+          allCharacterAlibis: room.mystery.suspects.map(s => ({ characterName: s.name, alibi: s.alibi })),
+          clues: room.mystery.clues.map(c => ({ description: c, relevance: 'Hidden detail' })),
+          eventsChronology: ['Dinner was served at 8:00', 'Power went out at 10:15', 'Victim was found at 11:00']
+        }
+      });
 
-    setRoom(prev => ({ ...prev, status: 'revelation', revelation: resolution.recapNarrative }));
+      setRoom(prev => ({ ...prev, status: 'revelation', revelation: resolution.recapNarrative }));
+    } catch (e) {
+      console.error(e);
+      setRoom(prev => ({ ...prev, status: 'investigation' }));
+    }
   };
 
   const me = room.players.find(p => p.id === localPlayerId);
@@ -232,7 +238,7 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
       <div className="flex flex-col items-center justify-center min-h-screen mystery-gradient text-center p-8">
         <Skull className="h-16 w-16 text-accent animate-pulse mb-8" />
         <h2 className="text-4xl font-headline italic mb-4">{loadingMsg}</h2>
-        <div className="w-64">
+        <div className="w-64 mx-auto">
           <Progress value={45} className="h-1" />
         </div>
       </div>
