@@ -1,0 +1,151 @@
+
+{
+  "mysteries": [
+    {
+      "victim": {
+        "name": "Lord Reginald Sterling",
+        "description": "The patriarch of the Sterling estate, a wealthy industrialist known for his sharp tongue and vast collection of rare artifacts.",
+        "causeOfDeath": "Poisoning by a rare alkaloid found in his evening tea.",
+        "timeOfDeath": "Between 11:30 PM and 12:00 AM",
+        "locationOfDeath": "The Private Library",
+        "fatalWound": "No visible external wounds, but lips showed a faint bluish tint and pupils were pinpoint."
+      },
+      "suspects": [
+        {
+          "name": "Lady Beatrice Sterling",
+          "description": "Reginald's much younger wife, a former socialite who feels trapped in the cold manor.",
+          "backstorySummary": "She was recently cut out of the will after a public argument about her spending habits.",
+          "alibi": "Claimed to be in her chambers reading a novel from 10:00 PM onwards.",
+          "hiddenMotive": "Financial desperation and a secret desire to return to the city life she left behind.",
+          "relationshipToVictim": "Wife",
+          "isKiller": false
+        },
+        {
+          "name": "Arthur Sterling",
+          "description": "The eldest son, a failing businessman who has always lived in his father's shadow.",
+          "backstorySummary": "He begged his father for a loan to save his textile mill, but was cruelly refused.",
+          "alibi": "Was in the billiards room practicing his shots alone.",
+          "hiddenMotive": "He needed the inheritance money immediately to avoid a public bankruptcy and prison.",
+          "relationshipToVictim": "Son",
+          "isKiller": true
+        },
+        {
+          "name": "Dr. Julian Thorne",
+          "description": "The family physician and a close friend of Reginald for over thirty years.",
+          "backstorySummary": "A brilliant doctor who hides a mounting gambling debt and a prescription drug addiction.",
+          "alibi": "Was in the guest parlor discussing medical journals with Professor Plum.",
+          "hiddenMotive": "Reginald discovered his addiction and threatened to report him to the medical board.",
+          "relationshipToVictim": "Personal Physician",
+          "isKiller": false
+        },
+        {
+          "name": "Eleanor Vance",
+          "description": "The meticulous estate manager who knows where all the bodies are buried—literally.",
+          "backstorySummary": "She has been skimming funds from the estate accounts for years to support her family back home.",
+          "alibi": "Was in the kitchen finalizing the accounts for the upcoming quarter.",
+          "hiddenMotive": "Reginald had ordered an external audit of the estate's finances starting tomorrow.",
+          "relationshipToVictim": "Estate Manager",
+          "isKiller": false
+        },
+        {
+          "name": "Victor Rossi",
+          "description": "A world-renowned art appraiser who was visiting to evaluate Reginald's latest acquisition.",
+          "backstorySummary": "He is actually a disgraced former museum curator with a history of forging signatures.",
+          "alibi": "Claims he was in the conservatory sketching the winter roses.",
+          "hiddenMotive": "He discovered that the artifact Reginald bought was a fake he himself had created years ago.",
+          "relationshipToVictim": "Visiting Consultant",
+          "isKiller": false
+        },
+        {
+          "name": "Clara Whitby",
+          "description": "Reginald's estranged niece, an activist who despises everything her uncle stands for.",
+          "backstorySummary": "She arrived unannounced to demand he donate a portion of his wealth to a local orphanage.",
+          "alibi": "Was taking a walk in the snowy gardens to 'clear her head' from her uncle's toxicity.",
+          "hiddenMotive": "She believed killing the 'monster' was a moral imperative to redistribute his ill-gotten gains.",
+          "relationshipToVictim": "Niece",
+          "isKiller": false
+        }
+      ],
+      "clues": [
+        "A faint smell of bitter almonds lingering in the empty teacup on the library desk.",
+        "A frantic, half-burned letter in the library fireplace signed 'A.S.' pleading for mercy.",
+        "The doctor's medical bag was left slightly open in the hallway, with one vial missing.",
+        "Footprints in the snow leading from the conservatory to the side entrance of the library."
+      ],
+      "killerRevelation": "Arthur Sterling, desperate to save his business, used his access to the doctor's bag earlier in the evening to steal a potent poison. During a final confrontation in the library, he slipped it into his father's tea. He then retreated to the billiards room, hoping his 'solitary practice' would serve as a simple alibi. The burned letter was his final plea that Reginald rejected just minutes before the murder."
+    },
+    {
+      "victim": {
+        "name": "Captain Harrison 'The Shark' Pike",
+        "description": "A retired naval officer turned luxury yacht owner, known for his ruthless discipline and secret stash of gold.",
+        "causeOfDeath": "Blunt force trauma to the back of the skull.",
+        "timeOfDeath": "Around 2:00 AM",
+        "locationOfDeath": "The Upper Deck",
+        "fatalWound": "A single, heavy blow to the occipital bone, likely caused by a heavy, rounded object."
+      },
+      "suspects": [
+        {
+          "name": "Marina Del Ray",
+          "description": "An aspiring singer and Pike's current fiancée, who enjoys the luxury but hates the man.",
+          "backstorySummary": "She was seen arguing with Pike about her 'unnecessary' career aspirations.",
+          "alibi": "Sleeping in her cabin with the door locked.",
+          "hiddenMotive": "A massive life insurance policy that doubles if Pike dies at sea.",
+          "relationshipToVictim": "Fiancée",
+          "isKiller": false
+        },
+        {
+          "name": "First Mate Barnaby",
+          "description": "A weathered sailor who has served Pike for twenty years without a single promotion.",
+          "backstorySummary": "He discovered Pike was planning to sell the yacht and leave him without a pension.",
+          "alibi": "Was at the helm for the midnight watch, though logs show a 15-minute gap.",
+          "hiddenMotive": "Pure, unadulterated revenge for two decades of mistreatment and broken promises.",
+          "relationshipToVictim": "First Mate",
+          "isKiller": false
+        },
+        {
+          "name": "Silas Vane",
+          "description": "A high-stakes gambler who lost his fortune to Pike in a private poker game.",
+          "backstorySummary": "He was caught trying to break into Pike's safe earlier that evening.",
+          "alibi": "Drinking alone in the galley, witnessed by no one.",
+          "hiddenMotive": "He needed to recover his markers before the yacht docked and his debts were called in.",
+          "relationshipToVictim": "Business Associate",
+          "isKiller": false
+        },
+        {
+          "name": "Dr. Aris Thorne",
+          "description": "The onboard medic, a quiet man who avoids eye contact and hides a dark past.",
+          "backstorySummary": "Pike knew about the doctor's malpractice suit that resulted in a patient's death.",
+          "alibi": "Treating a guest for seasickness in the lower cabins.",
+          "hiddenMotive": "Pike was using the information to blackmail the doctor into smuggling illicit goods.",
+          "relationshipToVictim": "Ship Medic",
+          "isKiller": false
+        },
+        {
+          "name": "Chef Marco",
+          "description": "A temperamental genius who prides himself on his collection of heavy cast-iron cookware.",
+          "backstorySummary": "Pike publicly humiliated him at dinner, calling his signature dish 'slop for swine'.",
+          "alibi": "Prep work for breakfast in the kitchen.",
+          "hiddenMotive": "His professional pride was shattered, and he has a known history of violent outbursts.",
+          "relationshipToVictim": "Personal Chef",
+          "isKiller": true
+        },
+        {
+          "name": "Ivy Sterling",
+          "description": "A travel blogger documenting the luxury voyage, always looking for 'the story of a lifetime'.",
+          "backstorySummary": "She is actually a private investigator hired by Pike's ex-wife to find his hidden assets.",
+          "alibi": "Editing photos in the lounge area.",
+          "hiddenMotive": "She found the gold and knew Pike would never let her leave the yacht with that knowledge.",
+          "relationshipToVictim": "Guest / Investigator",
+          "isKiller": false
+        }
+      ],
+      "clues": [
+        "A heavy cast-iron skillet found missing from the kitchen racks.",
+        "A faint trail of flour leading from the galley toward the stairs of the upper deck.",
+        "Pike's pocket watch was crushed, stopped exactly at 2:05 AM.",
+        "A scrap of a silk scarf caught on the railing of the upper deck."
+      ],
+      "killerRevelation": "Chef Marco, pushed to his breaking point by Pike's insults, took a heavy skillet from his kitchen and followed the Captain to the upper deck. In a fit of rage, he struck him once and returned to the kitchen, attempting to clean the weapon. The faint traces of flour he left behind were the only evidence of his midnight excursion."
+    }
+  ]
+}

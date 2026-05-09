@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, use } from 'react';
@@ -10,11 +11,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Users, Info, MapPin, Skull, Fingerprint, ShieldAlert, Vote, Gavel, Search, MessageSquare } from 'lucide-react';
+import { Users, Info, MapPin, Skull, Fingerprint, ShieldAlert, Vote, Gavel, Search, MessageSquare, Database } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import gameBank from '@/app/lib/game-bank.json';
 
 export default function GameRoomPage({ params }: { params: Promise<{ roomId: string }> }) {
   const unwrappedParams = use(params);
@@ -38,6 +40,7 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
   const [chatLogs, setChatLogs] = useState<{from: string, msg: string, isSuspect?: boolean}[]>([]);
   const [isInterrogating, setIsInterrogating] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
+  const [usingBank, setUsingBank] = useState(false);
 
   useEffect(() => {
     setLocalPlayerId(Math.random().toString(36).substring(7));
@@ -67,14 +70,34 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
     }
   }, [roomId, playerName, isHostParam, localPlayerId]);
 
-  const startGame = async () => {
+  const startGame = async (forceBank = false) => {
     if (isStarting) return;
     setIsStarting(true);
     setRoom(prev => ({ ...prev, status: 'generating' }));
-    setLoadingMsg('Generating the perfect crime...');
+    setLoadingMsg(forceBank ? 'Loading mystery from archives...' : 'Generating the perfect crime...');
 
     try {
-      const mystery = await generateMurderMystery({ setting: 'A secluded winter manor in the mountains.' });
+      let mystery;
+      if (forceBank) {
+        // Pick a random mystery from the bank
+        const randomIndex = Math.floor(Math.random() * gameBank.mysteries.length);
+        mystery = gameBank.mysteries[randomIndex];
+        setUsingBank(true);
+      } else {
+        try {
+          mystery = await generateMurderMystery({ setting: 'A secluded winter manor in the mountains.' });
+          setUsingBank(false);
+        } catch (aiError: any) {
+          console.error("AI Generation failed, falling back to bank:", aiError);
+          const randomIndex = Math.floor(Math.random() * gameBank.mysteries.length);
+          mystery = gameBank.mysteries[randomIndex];
+          setUsingBank(true);
+          toast({
+            title: "AI Service Busy",
+            description: "Falling back to a pre-defined classic mystery for a seamless experience.",
+          });
+        }
+      }
       
       setLoadingMsg('Assigning roles and secrets...');
 
@@ -95,7 +118,7 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
         ...prev,
         status: 'investigation',
         players: updatedPlayers,
-        mystery: mystery,
+        mystery: mystery as any,
         cluesDiscovered: mystery.clues.slice(0, 2)
       }));
       
@@ -106,10 +129,8 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
       console.error(e);
       toast({
         variant: "destructive",
-        title: "Mystery Generation Failed",
-        description: e.message.includes('429') 
-          ? "The AI is currently exhausted. Please wait a minute and try again." 
-          : "Something went wrong while setting the scene.",
+        title: "Setup Failed",
+        description: "Something went wrong while setting the scene.",
       });
       setRoom(prev => ({ ...prev, status: 'lobby' }));
     } finally {
@@ -246,13 +267,23 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
             </Card>
             
             {me?.isHost && (
-              <Button 
-                onClick={startGame}
-                disabled={room.players.length < 1 || isStarting}
-                className="w-full h-16 text-xl font-headline tracking-widest bg-accent hover:bg-accent/80 text-white shadow-lg accent-glow"
-              >
-                BEGIN THE INVESTIGATION
-              </Button>
+              <div className="space-y-3">
+                <Button 
+                  onClick={() => startGame(false)}
+                  disabled={room.players.length < 1 || isStarting}
+                  className="w-full h-16 text-xl font-headline tracking-widest bg-accent hover:bg-accent/80 text-white shadow-lg accent-glow"
+                >
+                  START AI INVESTIGATION
+                </Button>
+                <Button 
+                  onClick={() => startGame(true)}
+                  disabled={room.players.length < 1 || isStarting}
+                  variant="outline"
+                  className="w-full h-12 text-sm font-headline tracking-widest border-accent/50 text-accent hover:bg-accent/10"
+                >
+                  <Database className="h-4 w-4 mr-2" /> QUICK START (CLASSIC MYSTERY)
+                </Button>
+              </div>
             )}
           </div>
         </div>
@@ -284,6 +315,7 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
               <h1 className="text-3xl font-headline italic">The {room.mystery?.victim.name} Murder</h1>
               <p className="text-muted-foreground text-sm flex items-center gap-2">
                 <MapPin className="h-3 w-3" /> {room.mystery?.victim.locationOfDeath}
+                {usingBank && <Badge variant="outline" className="text-[10px] py-0 px-1 border-accent/30 text-accent/70 h-4">Archived</Badge>}
               </p>
             </div>
           </div>
