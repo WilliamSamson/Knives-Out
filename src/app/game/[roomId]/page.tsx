@@ -6,13 +6,15 @@ import { GameRoom, Player, GameStatus } from '@/app/lib/game-state';
 import { generatePlayerCharacter } from '@/ai/flows/generate-player-character';
 import { generateMurderMystery } from '@/ai/flows/generate-murder-mystery';
 import { revealMurderResolution } from '@/ai/flows/reveal-murder-resolution';
+import { interrogateSuspect } from '@/ai/flows/interrogate-suspect';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Users, Info, MapPin, Skull, Fingerprint, ShieldAlert, Vote, Gavel, Search } from 'lucide-react';
+import { Users, Info, MapPin, Skull, Fingerprint, ShieldAlert, Vote, Gavel, Search, MessageSquare } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function GameRoomPage({ params }: { params: Promise<{ roomId: string }> }) {
   const unwrappedParams = use(params);
@@ -31,14 +33,14 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
   const [localPlayerId, setLocalPlayerId] = useState<string>('');
   const [loadingMsg, setLoadingMsg] = useState('');
   const [interrogationText, setInterrogationText] = useState('');
-  const [chatLogs, setChatLogs] = useState<{from: string, msg: string}[]>([]);
+  const [selectedSuspect, setSelectedSuspect] = useState<string>('');
+  const [chatLogs, setChatLogs] = useState<{from: string, msg: string, isSuspect?: boolean}[]>([]);
+  const [isInterrogating, setIsInterrogating] = useState(false);
 
-  // Defer ID generation to handle hydration correctly
   useEffect(() => {
     setLocalPlayerId(Math.random().toString(36).substring(7));
   }, []);
 
-  // Simulation of multiplayer by adding a few dummy players if it's the host
   useEffect(() => {
     if (!localPlayerId) return;
 
@@ -49,7 +51,6 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
       ready: false,
     };
     
-    // In a real app, this would be a socket or firebase listener
     if (isHostParam && room.players.length === 0) {
       const dummyPlayers: Player[] = [
         { id: '2', name: 'Detective Benoit', isHost: false, ready: true },
@@ -69,11 +70,9 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
     setLoadingMsg('Generating the perfect crime...');
 
     try {
-      // 1. Generate the Mystery
       const mystery = await generateMurderMystery({ setting: 'A secluded winter manor in the mountains.' });
       setLoadingMsg('Forging character backstories and motives...');
 
-      // 2. Assign characters to players (in real app, loop players)
       const playerCharPromises = room.players.map((p, i) => {
         return generatePlayerCharacter({
           gameSetting: 'A secluded winter manor in the mountains. One of your friends is dead.',
@@ -93,19 +92,45 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
         status: 'investigation',
         players: updatedPlayers,
         mystery: mystery,
-        cluesDiscovered: mystery.clues.slice(0, 2) // Start with 2 discovered clues
+        cluesDiscovered: mystery.clues.slice(0, 2)
       }));
+      
+      if (mystery.suspects.length > 0) {
+        setSelectedSuspect(mystery.suspects[0].name);
+      }
     } catch (e) {
       console.error(e);
       setRoom(prev => ({ ...prev, status: 'lobby' }));
     }
   };
 
-  const handleInterrogation = (e: React.FormEvent) => {
+  const handleInterrogation = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!interrogationText) return;
-    setChatLogs(prev => [...prev, { from: playerName, msg: interrogationText }]);
+    if (!interrogationText || !selectedSuspect || !room.mystery || isInterrogating) return;
+
+    const question = interrogationText;
     setInterrogationText('');
+    setChatLogs(prev => [...prev, { from: playerName, msg: question }]);
+    setIsInterrogating(true);
+
+    try {
+      const response = await interrogateSuspect({
+        mysteryScenario: room.mystery,
+        suspectName: selectedSuspect,
+        question: question,
+        previousConversation: chatLogs.slice(-4).map(l => ({
+          role: l.isSuspect ? 'assistant' : 'user',
+          content: l.msg
+        }))
+      });
+
+      setChatLogs(prev => [...prev, { from: selectedSuspect, msg: response.response, isSuspect: true }]);
+    } catch (e) {
+      console.error(e);
+      setChatLogs(prev => [...prev, { from: 'System', msg: 'The suspect remains silent...' }]);
+    } finally {
+      setIsInterrogating(false);
+    }
   };
 
   const moveToAccusation = () => {
@@ -173,11 +198,6 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
                     {p.isHost && <Badge className="bg-accent/20 text-accent hover:bg-accent/20">Host</Badge>}
                   </div>
                 ))}
-                {Array.from({ length: Math.max(0, 6 - room.players.length) }).map((_, i) => (
-                  <div key={i} className="p-3 border border-dashed border-border/30 rounded-lg text-muted-foreground text-sm text-center">
-                    Awaiting guest...
-                  </div>
-                ))}
               </div>
             </CardContent>
           </Card>
@@ -195,16 +215,11 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
             {me?.isHost && (
               <Button 
                 onClick={startGame}
-                disabled={room.players.length < 2} // Should be 6 in real game
+                disabled={room.players.length < 1}
                 className="w-full h-16 text-xl font-headline tracking-widest bg-accent hover:bg-accent/80 text-white shadow-lg accent-glow"
               >
                 BEGIN THE INVESTIGATION
               </Button>
-            )}
-            {!me?.isHost && (
-              <div className="p-4 bg-muted rounded-lg text-center text-muted-foreground italic">
-                Waiting for host to start the game...
-              </div>
             )}
           </div>
         </div>
@@ -257,7 +272,6 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
         </header>
 
         <div className="grid lg:grid-cols-12 gap-6">
-          {/* Left Sidebar: Character Details */}
           <aside className="lg:col-span-3 space-y-6">
             <Card className="bg-card/30 border-border/50">
               <CardHeader className="pb-2">
@@ -269,10 +283,6 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
                   <p className="text-xs text-muted-foreground uppercase">Background</p>
                   <p className="text-sm italic leading-relaxed">{me?.character?.backstory}</p>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground uppercase">Relationships</p>
-                  <p className="text-sm leading-relaxed">{me?.character?.relationships}</p>
-                </div>
                 <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg mt-4">
                   <p className="text-xs text-destructive uppercase font-bold mb-1 flex items-center gap-1">
                     <ShieldAlert className="h-3 w-3" /> Hidden Secret
@@ -281,20 +291,8 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
                 </div>
               </CardContent>
             </Card>
-
-            <Card className="bg-background/20 border-border/30">
-               <CardHeader className="py-3">
-                 <CardTitle className="text-xs uppercase text-muted-foreground">Victim Profile</CardTitle>
-               </CardHeader>
-               <CardContent className="text-sm space-y-2">
-                 <p><strong>Name:</strong> {room.mystery?.victim.name}</p>
-                 <p><strong>Found:</strong> {room.mystery?.victim.locationOfDeath}</p>
-                 <p><strong>Cause:</strong> {room.mystery?.victim.causeOfDeath}</p>
-               </CardContent>
-            </Card>
           </aside>
 
-          {/* Main Content: Evidence & Interaction */}
           <main className="lg:col-span-6 space-y-6">
             <Tabs defaultValue="evidence" className="w-full">
               <TabsList className="grid w-full grid-cols-2 bg-muted/30">
@@ -317,37 +315,57 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
                       </CardContent>
                     </Card>
                   ))}
-                  <div className="border-2 border-dashed border-border/30 rounded-lg p-8 flex flex-col items-center justify-center text-muted-foreground gap-2">
-                    <Search className="h-8 w-8 opacity-20" />
-                    <p className="text-sm font-body italic">More clues remain hidden...</p>
-                  </div>
                 </div>
               </TabsContent>
 
-              <TabsContent value="interrogation" className="pt-4 h-[500px] flex flex-col">
-                <ScrollArea className="flex-1 border rounded-t-lg bg-background/30 p-4">
+              <TabsContent value="interrogation" className="pt-4 h-[600px] flex flex-col gap-4">
+                <div className="flex gap-2">
+                  <Select value={selectedSuspect} onValueChange={setSelectedSuspect}>
+                    <SelectTrigger className="bg-card/50">
+                      <SelectValue placeholder="Select a suspect" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {room.mystery?.suspects.map(s => (
+                        <SelectItem key={s.name} value={s.name}>{s.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <ScrollArea className="flex-1 border rounded-lg bg-background/30 p-4">
                    <div className="space-y-4">
-                      <div className="p-3 bg-accent/10 border border-accent/20 rounded-lg text-xs italic text-accent">
-                        System: Real-time interrogation is active. Press the other suspects for their whereabouts at the time of the murder.
-                      </div>
+                      {chatLogs.length === 0 && (
+                        <div className="text-center py-10 opacity-50 italic text-sm">
+                          Select a suspect above and begin your questioning...
+                        </div>
+                      )}
                       {chatLogs.map((log, i) => (
-                        <div key={i} className={`flex flex-col ${log.from === playerName ? 'items-end' : 'items-start'}`}>
+                        <div key={i} className={`flex flex-col ${!log.isSuspect ? 'items-end' : 'items-start'}`}>
                            <span className="text-[10px] text-muted-foreground mb-1">{log.from}</span>
-                           <div className={`p-3 rounded-lg text-sm max-w-[80%] ${log.from === playerName ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                           <div className={`p-3 rounded-lg text-sm max-w-[85%] ${!log.isSuspect ? 'bg-primary text-primary-foreground' : 'bg-muted border border-accent/20'}`}>
                               {log.msg}
                            </div>
                         </div>
                       ))}
+                      {isInterrogating && (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground animate-pulse">
+                          <MessageSquare className="h-3 w-3" /> {selectedSuspect} is thinking...
+                        </div>
+                      )}
                    </div>
                 </ScrollArea>
-                <form onSubmit={handleInterrogation} className="flex gap-2 p-2 border border-t-0 rounded-b-lg bg-card/50">
+                
+                <form onSubmit={handleInterrogation} className="flex gap-2 p-2 border rounded-lg bg-card/50">
                    <input 
                     value={interrogationText}
                     onChange={(e) => setInterrogationText(e.target.value)}
-                    placeholder="Ask a question..."
+                    placeholder={selectedSuspect ? `Ask ${selectedSuspect} a question...` : "Select a suspect first..."}
                     className="flex-1 bg-transparent outline-none text-sm px-2"
+                    disabled={!selectedSuspect || isInterrogating}
                    />
-                   <Button type="submit" size="sm" className="bg-accent hover:bg-accent/80">Ask</Button>
+                   <Button type="submit" size="sm" className="bg-accent hover:bg-accent/80" disabled={!selectedSuspect || isInterrogating}>
+                     Ask
+                   </Button>
                 </form>
               </TabsContent>
             </Tabs>
@@ -362,15 +380,15 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 gap-3">
-                    {room.players.map(p => (
+                    {room.mystery?.suspects.map(suspect => (
                       <Button 
-                        key={p.id}
-                        variant={me?.voteId === p.id ? 'default' : 'outline'}
-                        className={`h-auto py-4 flex flex-col gap-1 items-start ${me?.voteId === p.id ? 'bg-destructive hover:bg-destructive/90' : 'border-destructive/20 hover:border-destructive/50'}`}
-                        onClick={() => castVote(p.id)}
+                        key={suspect.name}
+                        variant={me?.voteId === suspect.name ? 'default' : 'outline'}
+                        className={`h-auto py-4 flex flex-col gap-1 items-start ${me?.voteId === suspect.name ? 'bg-destructive hover:bg-destructive/90' : 'border-destructive/20 hover:border-destructive/50'}`}
+                        onClick={() => castVote(suspect.name)}
                       >
-                        <span className="font-headline italic text-lg">{p.character?.characterName}</span>
-                        <span className="text-[10px] opacity-70 uppercase tracking-tighter">Played by {p.name}</span>
+                        <span className="font-headline italic text-lg">{suspect.name}</span>
+                        <span className="text-[10px] opacity-70 uppercase tracking-tighter">{suspect.relationshipToVictim}</span>
                       </Button>
                     ))}
                   </div>
@@ -379,7 +397,6 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
             )}
           </main>
 
-          {/* Right Sidebar: Suspects Alibis */}
           <aside className="lg:col-span-3 space-y-6">
              <Card className="bg-card/20 border-border/50">
                <CardHeader>
@@ -392,13 +409,10 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
                    <div key={i} className="p-3 bg-background/40 border border-border/30 rounded-lg space-y-2">
                       <div className="flex justify-between items-start">
                         <span className="font-headline italic text-sm">{suspect.name}</span>
-                        {room.players.some(p => p.voteId === suspect.name) && <Vote className="h-3 w-3 text-destructive" />}
+                        {me?.voteId === suspect.name && <Vote className="h-3 w-3 text-destructive" />}
                       </div>
                       <p className="text-[10px] text-muted-foreground uppercase font-bold italic">Alleged Alibi</p>
                       <p className="text-xs italic leading-tight opacity-80">"{suspect.alibi}"</p>
-                      <div className="flex flex-wrap gap-1 mt-2">
-                         <Badge variant="secondary" className="text-[8px] bg-accent/10 text-accent">{suspect.relationshipToVictim}</Badge>
-                      </div>
                    </div>
                  ))}
                </CardContent>
@@ -416,7 +430,6 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
           <CardHeader className="text-center border-b border-border/50 pb-8">
             <Badge className="bg-accent text-white mb-4">Case Closed</Badge>
             <CardTitle className="text-5xl font-headline italic tracking-tighter">The Final Reveal</CardTitle>
-            <CardDescription className="font-body text-lg italic mt-2">Connecting the dots between the dinner and the crime.</CardDescription>
           </CardHeader>
           <CardContent className="p-10">
             <ScrollArea className="h-[400px] pr-6">
