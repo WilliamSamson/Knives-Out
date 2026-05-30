@@ -61,10 +61,6 @@
   }
 }
 
-.mystery-gradient {
-  background: radial-gradient(circle at center, #2E264D 0%, #17151A 100%);
-}
-
-.accent-glow {
-  box-shadow: 0 0 20px rgba(38, 162, 211, 0.15);
+.mystery-surface {
+  background-color: hsl(var(--background));
 }

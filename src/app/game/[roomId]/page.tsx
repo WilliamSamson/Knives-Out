@@ -3,7 +3,7 @@
 
 import { useState, useEffect, use } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { GameRoom, Player, GameStatus } from '@/app/lib/game-state';
+import { GameRoom, Player } from '@/app/lib/game-state';
 import { generateMurderMystery } from '@/ai/flows/generate-murder-mystery';
 import { revealMurderResolution } from '@/ai/flows/reveal-murder-resolution';
 import { interrogateSuspect } from '@/ai/flows/interrogate-suspect';
@@ -195,7 +195,18 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
       const resolution = await revealMurderResolution({
         gameScenario: {
           victim: room.mystery.victim,
-          trueKiller: room.mystery.suspects.find(s => s.isKiller)!,
+          trueKiller: (() => {
+            const killer = room.mystery.suspects.find(s => s.isKiller);
+            if (!killer) {
+              throw new Error('Mystery does not include a killer.');
+            }
+
+            return {
+              name: killer.name,
+              motive: killer.hiddenMotive,
+              method: room.mystery.victim.causeOfDeath,
+            };
+          })(),
           allCharacterAlibis: room.mystery.suspects.map(s => ({ characterName: s.name, alibi: s.alibi })),
           clues: room.mystery.clues.map(c => ({ description: c, relevance: 'Hidden detail' })),
           eventsChronology: ['Dinner was served at 8:00', 'Power went out at 10:15', 'Victim was found at 11:00']
@@ -271,7 +282,7 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
                 <Button 
                   onClick={() => startGame(false)}
                   disabled={room.players.length < 1 || isStarting}
-                  className="w-full h-16 text-xl font-headline tracking-widest bg-accent hover:bg-accent/80 text-white shadow-lg accent-glow"
+                  className="w-full h-16 text-xl font-headline tracking-widest bg-accent hover:bg-accent/80 text-white"
                 >
                   START AI INVESTIGATION
                 </Button>
@@ -293,7 +304,7 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
 
   if (room.status === 'generating') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen mystery-gradient text-center p-8">
+      <div className="flex flex-col items-center justify-center min-h-screen mystery-surface text-center p-8">
         <Skull className="h-16 w-16 text-accent animate-pulse mb-8" />
         <h2 className="text-4xl font-headline italic mb-4">{loadingMsg}</h2>
         <div className="w-64 mx-auto">
@@ -490,8 +501,8 @@ export default function GameRoomPage({ params }: { params: Promise<{ roomId: str
 
   if (room.status === 'revelation') {
     return (
-      <div className="mystery-gradient min-h-screen p-8 flex items-center justify-center">
-        <Card className="max-w-3xl w-full bg-card/80 backdrop-blur-xl border-accent/30 shadow-[0_0_50px_rgba(38,162,211,0.2)]">
+      <div className="mystery-surface min-h-screen p-8 flex items-center justify-center">
+        <Card className="max-w-3xl w-full bg-card/90 border-accent/30 shadow-xl">
           <CardHeader className="text-center border-b border-border/50 pb-8">
             <Badge className="bg-accent text-white mb-4">Case Closed</Badge>
             <CardTitle className="text-5xl font-headline italic tracking-tighter">The Final Reveal</CardTitle>

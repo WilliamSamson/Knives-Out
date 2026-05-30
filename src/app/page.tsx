@@ -24,14 +24,14 @@ export default function Home() {
   };
 
   return (
-    <div className="mystery-gradient min-h-screen flex flex-col items-center justify-center p-4">
+    <div className="mystery-surface min-h-screen flex flex-col items-center justify-center p-4">
       <div className="max-w-md w-full space-y-8 text-center">
         <div className="space-y-2">
           <h1 className="text-6xl font-headline italic tracking-tighter text-white">Knives Out</h1>
           <p className="text-muted-foreground font-body italic">"6 Friends, 1 Death. Everyone is a Suspect."</p>
         </div>
 
-        <Card className="bg-card/80 backdrop-blur-md border-border/50 shadow-2xl">
+        <Card className="bg-card/90 border-border/50 shadow-xl">
           <CardHeader>
             <CardTitle className="font-headline text-2xl">Enter the Mansion</CardTitle>
             <CardDescription className="font-body">Identify yourself before the investigation begins.</CardDescription>
@@ -76,7 +76,7 @@ export default function Home() {
               <Button 
                 onClick={handleCreateRoom}
                 disabled={!playerName}
-                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-headline text-lg tracking-wide accent-glow"
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-headline text-lg tracking-wide"
               >
                 <Plus className="h-5 w-5 mr-2" />
                 Host a Private Mystery
